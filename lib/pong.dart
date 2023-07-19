@@ -48,15 +48,16 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
   }
 
   void checkBorders(){
+    double diameter = 50;
     if(posX <= 0 && hDir == Direction.left)
     {
       hDir = Direction.right;
     }
-    if(posX >= width - 50 && hDir == Direction.right)
+    if(posX >= width - diameter && hDir == Direction.right)
     {
       hDir = Direction.left;
     }
-    if(posY >= height - 50 && vDir == Direction.up)
+    if(posY >= height - diameter && vDir == Direction.up)
     {
       vDir = Direction.up;
     }
@@ -64,6 +65,18 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
     {
       vDir = Direction.down;
     }
+
+    if(posY >= height - diameter - batHeight && vDir == Direction.down)
+    {
+      if(posX >= (batPosition- diameter) && posX <= (batPosition + batWidth + diameter)){
+        vDir = Direction.up;
+      }else
+      {
+        controller.stop();
+        dispose();
+      }
+    }
+
   }
 
   void moveBat(DragUpdateDetails update){
@@ -102,5 +115,15 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
         ],
       );
     });
+  }
+
+  void safeSetState(Function function)
+  {
+    if(mounted && controller.isAnimating)
+    {
+      setState((){
+        function();
+      });
+    }
   }
 }
