@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'ball.dart';
 import 'bat.dart';
 
@@ -15,9 +16,12 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
   Direction vDir = Direction.down;
   Direction hDir = Direction.right;
 
+  int score = 0;
+  double randX = 1;
+  double randY = 1;
   double increment = 5;
-  late double width;
-  late double height;
+  late double width = 0;
+  late double height = 0;
   double posX = 0;
   double posY = 0;
   double batWidth = 0;
@@ -27,16 +31,19 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
   late Animation <double> animation;
   late AnimationController controller;
 
+  
   @override
   void initState(){
     posX = 0;
     posY = 0;
     controller = AnimationController(duration: const Duration(seconds: 30), vsync: this, );
-    animation = Tween<double>(begin: 0, end:10000).animate(controller);
+    animation = Tween<double>(begin: 0, end:100000).animate(controller);
     animation.addListener(() {
-      setState(() {
-        (hDir == Direction.right) ? posX += increment : posX -= increment;
-        (vDir == Direction.down) ? posY += increment : posY -= increment;
+      safeSetState(() {
+        (hDir == Direction.right) ? posX += ((increment * randX).round())
+                                    :posX -= ((increment * randX).round());
+        (vDir == Direction.down) ? posY += ((increment * randY).round())
+                                   : posY -= ((increment * randY).round());
       });
 
       checkBorders();
@@ -52,35 +59,68 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
     if(posX <= 0 && hDir == Direction.left)
     {
       hDir = Direction.right;
+      randX = randomNumber();
     }
     if(posX >= width - diameter && hDir == Direction.right)
     {
       hDir = Direction.left;
+      randX = randomNumber();
     }
     if(posY >= height - diameter && vDir == Direction.up)
     {
       vDir = Direction.up;
+      randY = randomNumber();
     }
     if(posY <= 0 && vDir == Direction.up)
     {
       vDir = Direction.down;
+      randY = randomNumber();
     }
 
     if(posY >= height - diameter - batHeight && vDir == Direction.down)
     {
       if(posX >= (batPosition- diameter) && posX <= (batPosition + batWidth + diameter)){
         vDir = Direction.up;
+        randY = randomNumber();
+        safeSetState((){score++;});
       }else
       {
         controller.stop();
-        dispose();
+        showMessage(context);
       }
     }
+    
 
   }
 
+  void showMessage(BuildContext context)
+  {
+    showDialog(context: context, builder: (BuildContext context) {return AlertDialog(
+      title: Text('Game Over'),
+      content: Text('Would you like to play again?'),
+      actions: <Widget>[
+        TextButton(
+          child: Text('Yes'),
+          onPressed:() {
+            setState(() {
+              posX = 0;
+              posY = 0;
+              score = 0;
+            });
+            Navigator.of(context).pop();
+            controller.repeat();
+          },
+        ),
+        TextButton(onPressed:(){
+          Navigator.of(context).pop();
+          dispose();
+        }, child: Text('No'))
+      ],
+    );});
+  }
+
   void moveBat(DragUpdateDetails update){
-    setState(() {
+    safeSetState(() {
       batPosition += update.delta.dx;
     });
   }
@@ -101,6 +141,11 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
       return Stack(
         children: <Widget>[
           Positioned(
+            top: 0,
+            right: 24, 
+            child: Text('Score: ' + score.toString()),
+          ),
+          Positioned(
           child: Ball(),
           top: posY,
           left: posX,),
@@ -115,6 +160,13 @@ class _PongState extends State<Pong> with SingleTickerProviderStateMixin{
         ],
       );
     });
+  }
+
+  double randomNumber()
+  {
+    var ran = new Random();
+    int myNum = ran.nextInt(101);
+    return (50 + myNum) / 100;
   }
 
   void safeSetState(Function function)
